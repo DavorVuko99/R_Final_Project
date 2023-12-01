@@ -118,7 +118,91 @@ gender_vs_violent_crimes
 
 ```
 
+```{r}
+# Convert arrest_date to a valid date format
+BurlingtonCrimeData$arrest_date <- as.Date(BurlingtonCrimeData$arrest_date, format = "%m/%d/%y")
 
+# Extract year and month from arrest_date
+BurlingtonCrimeData <- BurlingtonCrimeData |>
+  mutate(
+    year_month = floor_date(arrest_date, unit = "month"),  # floor to the beginning of the month
+    year_month_label = format(year_month, "%b %Y")
+  )
+
+# Separate data into four dataframes
+violent_crimes_2018_to_2020 <- BurlingtonCrimeData |>
+  filter(arrest_date >= as.Date("2018-01-01") & arrest_date < as.Date("2020-03-01") & violent == TRUE)
+
+violent_crimes_2020_to_current <- BurlingtonCrimeData |>
+  filter(arrest_date >= as.Date("2020-03-01") & violent == TRUE)
+
+non_violent_crimes_2018_to_2020 <- BurlingtonCrimeData |>
+  filter(arrest_date >= as.Date("2018-01-01") & arrest_date < as.Date("2020-03-01") & violent == FALSE)
+
+non_violent_crimes_2020_to_current <- BurlingtonCrimeData |>
+  filter(arrest_date >= as.Date("2020-03-01") & violent == FALSE)
+
+# Count the number of rows in each dataframe
+non_violent_count_2018_to_2020 <- nrow(non_violent_crimes_2018_to_2020)
+non_violent_count_2020_to_current <- nrow(non_violent_crimes_2020_to_current)
+
+# Create a new dataframe named non_violent_bar_data
+non_violent_bar_data <- data.frame(
+  Period = c("2018 to March 2020", "March 2020 to Current"),
+  Count = c(non_violent_count_2018_to_2020, non_violent_count_2020_to_current)
+)
+
+# Count the number of rows in each dataframe
+violent_count_2018_to_2020 <- nrow(violent_crimes_2018_to_2020)
+violent_count_2020_to_current <- nrow(violent_crimes_2020_to_current)
+
+# Create a new dataframe named non_violent_bar_data
+violent_bar_data <- data.frame(
+  Period = c("2018 to March 2020", "March 2020 to Current"),
+  Count = c(violent_count_2018_to_2020, violent_count_2020_to_current)
+)
+
+
+```
+
+Now with all the filtered data that is serperated into individual dataframe, we can plot the number of violent Crimes pre and post COVID
+
+```{r}
+# Combine non-violent and violent bar data
+combined_bar_data <- rbind(
+  mutate(non_violent_bar_data, Crime_Type = "Non-Violent"),
+  mutate(violent_bar_data, Crime_Type = "Violent")
+)
+
+# Calculate the percentage of total crimes
+combined_bar_data <- combined_bar_data |>
+  group_by(Period)|>
+  mutate(Percentage = Count / sum(Count) * 100)
+
+# Plot the combined bar chart
+ggplot(data = combined_bar_data, 
+       mapping = aes(x = Period, y = Percentage, fill = Period)) +
+  
+  geom_bar(stat = "identity") +
+  
+  facet_wrap(~Crime_Type, scales = "free_y", ncol = 2) +
+  
+  labs(title = "Crime Comparison",
+       x = "Period",
+       y = "Percentage of Total Crimes") +
+  
+  theme_bw() +
+  
+  scale_y_continuous(
+    limits = c(0, 85),
+    breaks = seq(0, 85, 10),
+    labels = scales::percent_format(scale = 1),
+    expand = c(0, 0, 0.05, 0)) +
+  
+  scale_x_discrete(labels = c("2018 to March 2020" = "Pre-Covid", "March 2020 to Current" = "Post-Covid"))
+
+
+```
 
 
 
